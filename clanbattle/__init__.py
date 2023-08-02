@@ -141,6 +141,7 @@ async def add_monitor(bot, ev):
                                 f'{history["name"]}对{history["lap_num"]}周目{history["order_num"]}王造成了{history["damage"]}点伤害。')
                             # 通知挂树，清空申请出刀
                             if history["kill"]:
+                                await safe_send(bot, ev, clan_info.general_boss())
                                 if offtree_text := await clan_info.tree.notify_tree(history["order_num"]):
                                     clan_info.notice_tree.append(offtree_text)
 
@@ -151,7 +152,6 @@ async def add_monitor(bot, ev):
                     clan_info.notice_dao.clear()
                     await safe_send(bot, ev, "\n".join(clan_info.notice_tree))
                     clan_info.notice_tree.clear()
-                    await safe_send(bot, ev, clan_info.general_boss())
 
                 clan_info.error_count = 0
                 await clan_info.add_record(clan_battle_top["damage_history"], loop_num)
