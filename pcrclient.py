@@ -178,4 +178,4 @@ class pcrclient:
         await self.check_dangerous()
         await self.check_gamestart()
 
-        await self.callapi('/check/check_agreement', {})
+        # await self.callapi('/check/check_agreement', {})
