@@ -75,7 +75,7 @@ def lap2stage(lap_num):
         stage = 'B'
     elif lap_num in range(11,31):
         stage = 'C'
-    elif lap_num in range(31,41):
+    elif lap_num in range(31,39):
         stage = 'D'
     else:
         stage = 'E'
