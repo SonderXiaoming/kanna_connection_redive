@@ -21,8 +21,13 @@ async def get_clanbattlework():
     boss_id = 0
     check_id = None
     # 获取json数据
-    with open(clanbattlework_path, 'r', encoding='utf-8') as load_f:
-        clanbattlework = json.load(load_f)
+    if os.path.exists(clanbattlework_path):
+        with open(clanbattlework_path, 'r', encoding='utf-8') as load_f:
+            clanbattlework = json.load(load_f)
+    else:
+        clanbattlework_local_path = os.path.join(os.path.dirname(__file__), 'clanbattlework.local.json')
+        with open(clanbattlework_local_path, 'r', encoding='utf-8') as load_f:
+            clanbattlework = json.load(load_f)
     try:
         res = await aiorequests.get("https://www.caimogu.cc/gzlj/data?date=", headers={'x-requested-with': 'XMLHttpRequest'})
         data = await res.json()
