@@ -90,7 +90,7 @@ BOSS：1-5，对应公会战的一至五王，可以‘123’或者‘12’,也�
 </details>
 ## BOX图效果展示
 
-![box图](https://raw.githubusercontent.com/SonderXiaoming/kanna_connection_redive/master/show_img/box.png)
+![f83157d3b7fe674cd6043c7cb57f24c6_720](https://github.com/user-attachments/assets/f89e4270-a4d4-4ad8-85c8-47c3730cc548)
 
 ## 简单食用教程：
 
