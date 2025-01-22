@@ -40,6 +40,7 @@ help_text = '''
 【取消申请】 模拟10次挂10次，老子不打了
 '''.strip()
 
+bot = get_bot()
 clanbattle_info = {}
 run_group = {}
 semaphore = asyncio.Semaphore(40)
@@ -647,3 +648,12 @@ async def resatrt_remind(bot, ev):
         except Exception as e:
             pass
     await write_config(run_path, {})
+
+@sv.scheduled_job('cron', hour='5', minute='5') #推送5点时的名次
+async def rank_and_status():
+    for group_id in run_group:
+        clan_info: ClanBattle = clanbattle_info[group_id]
+        msg = f'凌晨5点时的排名为：{clan_info.rank}'
+        if not clan_info.loop_check:
+            msg += "，但出刀监控未开启，排名可能不准确"
+        await bot.send_group_msg(group_id = group_id, message = msg)
