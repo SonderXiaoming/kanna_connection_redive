@@ -8,14 +8,14 @@ from ..util.tools import load_config, write_config, safe_send, check_client, DAT
 from .base import *
 from .model import ClanBattle
 from .kpi import kpi_report
-from .sql import SubscribeDao, RecordDao, SLDao, TreeDao, ApplyDao
+from .sql import SubscribeDao, RecordDao, SLDao, TreeDao, ApplyDao, MemberDict
 import time
 import asyncio
 
 help_text = '''
 * “+” 表示空格
 【出刀监控】机器人登录账号，监视出刀情况并记录
-【催刀】栞栞谁没出满三刀
+【一键提醒】提醒未出完刀的群友
 【当前战报】本期会战出刀情况
 【我的战报 + 游戏名称】 栞栞个人出刀情况
 【今日战报 + 游戏名称】 栞栞今日个人出刀情况
@@ -40,6 +40,7 @@ help_text = '''
 【取消申请】 模拟10次挂10次，老子不打了
 '''.strip()
 
+bot = get_bot()
 clanbattle_info = {}
 run_group = {}
 semaphore = asyncio.Semaphore(40)
@@ -550,8 +551,41 @@ async def correct_dao(bot, ev):
     else:
         await bot.send(ev, "请检查你输入了正确的出刀编号")
     
-@sv.on_fullmatch('催刀')
+# 查找群友群名片中是否包含某个游戏内昵称
+def isMemberExist(gname, qmemdict):
+    for qname in qmemdict.keys():
+        if gname in qname:
+            return qname
+    return None
+
+@sv.on_fullmatch('一键关联')
+async def onekey_connect(bot, ev):
+    group_id = ev.group_id
+    db = MemberDict(group_id)
+
+    qmem_dict = dict({}) # 获取群成员信息
+    qmembers = await bot.get_group_member_list(group_id = group_id)
+    for qmem in qmembers:
+        if qmem['card']:
+            qmem_dict[qmem['card']] = qmem['user_id']
+        else:
+            qmem_dict[qmem['nickname']] = qmem['user_id']
+    
+    # 获取会战成员信息
+    config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
+    config = await load_config(config_file)
+    gmembers = dict(config["member"])
+
+    # 模糊匹配
+    for gname, gid in gmembers.items():
+        result = isMemberExist(gname, qmem_dict)
+        if result:
+            db.add_mem_pair(gid, gname, qmem_dict[result], result)
+
+@sv.on_prefix('一键提醒')
 async def nei_gui(bot, ev):
+    dnum = int(ev.message.extract_plain_text().strip())
+    print(dnum)
     group_id = ev.group_id
     db = RecordDao(group_id)
     data = db.get_day_rcords(int(time.time()))
@@ -559,7 +593,7 @@ async def nei_gui(bot, ev):
         await bot.send(ev, "数据库为空，请确保开启出刀监控或使用“回归性原理”进行修正")
     else:
         players = day_report(data)
-        result = await cuidao(players, group_id)
+        result = await cuidao(players, dnum, group_id)
         await bot.send(ev, result)
 
 @sv.on_fullmatch('会战KPI', '会战kpi')
@@ -647,3 +681,12 @@ async def resatrt_remind(bot, ev):
         except Exception as e:
             pass
     await write_config(run_path, {})
+
+@sv.scheduled_job('cron', hour='5', minute='5') #推送5点时的名次
+async def rank_and_status():
+    for group_id in run_group:
+        clan_info: ClanBattle = clanbattle_info[group_id]
+        msg = f'凌晨5点时的排名为：{clan_info.rank}'
+        if not clan_info.loop_check:
+            msg += "，但出刀监控未开启，排名可能不准确"
+        await bot.send_group_msg(group_id = group_id, message = msg)

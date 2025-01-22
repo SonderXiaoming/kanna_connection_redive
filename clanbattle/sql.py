@@ -512,3 +512,29 @@ class RecordDao(SqliteDao):
                                     break
             except:
                 raise
+
+
+class MemberDict(SqliteDao):
+    def __init__(self, groupid):
+        super().__init__(
+            table = 'memdict',
+            columns = 'gid, gname, qid, qname',
+            fields = '''
+            gid INT NOT NULL,
+            gname TEXT NOT NULL,
+            qid INT NOT NULL,
+            qname TEXT NOT NULL
+            ''',
+            groupid = groupid
+        )
+
+    def add_mem_pair(self, gid, gname, qid, qname):
+        with self._connect() as conn:
+            try:
+                isExist = conn.execute(f'SELECT * FROM {self._table} where gid = {gid}').fetchone()
+                if isExist:
+                    conn.execute(f"UPDATE {self._table} SET gname = '{gname}', qid = {qid}, qname = '{qname}' where gid = {gid}")
+                else:
+                    conn.execute(f"INSERT INTO {self._table} (gid, gname, qid, qname) VALUES ({gid}, '{gname}', {qid}, '{qname}')")
+            except:
+                raise
