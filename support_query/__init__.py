@@ -38,9 +38,31 @@ sv = Service(
     help_=help_text,  # 帮助说明
 )
 
-monitor_id = -1 # 助战人的qq号
-monitor_client = None # 助战人的登录实例
-monitor_nickname = "" # 助战人的昵称
+monitor_groups = dict()
+
+class SupportMonitor(object):
+    def __init__(self):
+        self.qid = 0
+        self.nickname = ""
+        self.monitor_client = None
+    
+    async def add_monitor(self, qid, group_id, bot):
+        monitor_client, nickname = await self.user_login(qid, group_id, bot)
+        if monitor_client:
+            self.qid = qid # 助战人的qq号
+            self.nickname = nickname # 助战人的昵称
+            self.monitor_client = monitor_client # 助战人的登录实例
+            return self.nickname
+        else:
+            return None
+
+    async def user_login(self, qid, group_id, bot):
+        acccountinfo = await load_config(os.path.join(DATA_PATH, 'account', f'{qid}.json'))
+        if acccountinfo != []:
+            monitor_client = await query(acccountinfo)
+            user_info = await bot.get_group_member_info(group_id = group_id, user_id = qid)
+            nickname = user_info["card"] or user_info["nickname"]
+            return monitor_client, nickname
 
 info_path = os.path.join(DATA_PATH, "support_query")
 
@@ -70,41 +92,40 @@ def get_info(file,name,isself=False):
 
 @sv.on_fullmatch('开启修改助战')
 async def record_monitor(bot, ev: CQEvent):
-    global monitor_id, monitor_client, monitor_nickname
-    old_monitor_id = monitor_id
-    monitor_id = ev.user_id # int
-    acccountinfo = await load_config(os.path.join(DATA_PATH, 'account', f'{monitor_id}.json'))
-    if acccountinfo != []:
-        monitor_client = await query(acccountinfo)
-        monitor_info = await bot.get_group_member_info(group_id = ev.group_id, user_id = monitor_id)
-        monitor_nickname = monitor_info["card"] or monitor_info["nickname"]
-        msg = f'已记录监控人【{monitor_nickname}】，可使用【修改助战XX】来切换此人助战'
+    user_id = ev.user_id
+    group_id = ev.group_id
+    supmon = SupportMonitor()
+    nickname = await supmon.add_monitor(user_id, group_id, bot)
+    if nickname:
+        monitor_groups[group_id] = supmon
+        msg = f'已记录群{group_id}的监控人【{nickname}】，可使用【修改助战XX】来切换此人助战'
         await bot.send(ev, msg)
     else:
-        monitor_id = old_monitor_id
         await bot.send(ev, "你没有绑定过账号")
 
 @sv.on_fullmatch('关闭修改助战')
 async def delete_monitor(bot, ev: CQEvent):
-    global monitor_id, monitor_client, monitor_nickname
-    if monitor_id != -1 and ev.user_id != monitor_id:
-        await bot.send(ev, f'你无权关闭{monitor_nickname}的助战！你可以联系{monitor_nickname}关闭或直接发送【开启修改助战】将此功能切换到你的账号上')
-        return
-    if monitor_id == -1 or monitor_nickname == None or monitor_nickname == "":
-        await bot.send(ev, "【修改助战】功能未开启")
+    user_id = ev.user_id
+    group_id = ev.group_id
+    if monitor_groups[group_id]:
+        supmon = monitor_groups[group_id]
+        if supmon.qid == user_id:
+            del monitor_groups[group_id]
+            await bot.send(ev, "已关闭【修改助战】功能")
+        else:
+            await bot.send(ev, f'你无权关闭{supmon.nickname}的助战！你可以联系{supmon.nickname}关闭或直接发送【开启修改助战】将此功能切换到你的账号上')
     else:
-        monitor_id = -1
-        monitor_client = None
-        monitor_nickname = ""
-        await bot.send(ev, "已关闭【修改助战】功能")
+        await bot.send(ev, "【修改助战】功能未开启")
 
 @sv.on_fullmatch('查助战人')
 async def search_monitor(bot, ev: CQEvent):
-    global monitor_id, monitor_nickname
-    if monitor_id == -1 or monitor_nickname == "":
+    group_id = ev.group_id
+    try:
+        supmon = monitor_groups[group_id]
+        await bot.send(ev, f'当前助战人为：{supmon.nickname}({supmon.qid})')
+    except:
         await bot.send(ev, "没有助战人，请发送【开启修改助战】，允许群友修改你的助战列表")
-    else:
-        await bot.send(ev, f'当前助战人为：{monitor_nickname}({monitor_id})')
+        pass
 
 @sv.on_fullmatch('查box帮助', '助战帮助')
 async def query_help(bot, ev: CQEvent):
@@ -144,16 +165,20 @@ async def create_support_cache(bot, ev: CQEvent):
 
 # 刷新自己的助战列表，显示自己指定助战的详细信息
 async def refreshAndShowZZ(bot, ev, cname):
+    group_id = ev.group_id
+    supmon = monitor_groups[group_id]
+    qid = supmon.qid
+    monitor_client = supmon.monitor_client
     # 刷新自己的box缓存，写入文件
     support_list = await monitor_client.callapi('/load/index', {'carrier': 'OPPO'})
     if "server_error" in support_list:
         await bot.send(ev, "网络异常")
         return
-    with open(os.path.join(info_path, 'user', f'{monitor_id}','self.json'), 'w', encoding='utf-8') as f:
+    with open(os.path.join(info_path, 'user', f'{qid}','self.json'), 'w', encoding='utf-8') as f:
         json.dump(support_list, f, ensure_ascii=False)
     
     # 读取文件，找到目标角色信息
-    all_info, check = get_info(os.path.join(info_path, 'user', f'{monitor_id}', 'self.json'), cname, True)
+    all_info, check = get_info(os.path.join(info_path, 'user', f'{qid}', 'self.json'), cname, True)
     if not check:
         await bot.send(ev, all_info)
         return
@@ -166,58 +191,76 @@ async def refreshAndShowZZ(bot, ev, cname):
 
 @sv.on_prefix(f'修改助战')
 async def clan_uni(bot, ev: CQEvent):
-    global monitor_id, monitor_client, monitor_nickname
-    if not monitor_client:
+    # 获取群监控
+    group_id = ev.group_id
+    supmon = monitor_groups[group_id]
+    
+    # 异常处理
+    if not supmon:
         await bot.send(ev, '没有助战人，请发送【开启修改助战】，允许群友修改你的助战列表')
         return
-    if not await check_client(monitor_client):
-        monitor_id = -1
-        monitor_client = None
-        monitor_nickname = ""
+    if not await check_client(supmon.monitor_client):
+        del monitor_groups[group_id]
         await bot.send(ev, '【修改助战】功能已被顶号退出')
         return
 
-    ms = ev.message.extract_plain_text().strip()
-    cha_fin = 0
-    for CHARA in CHARA_NAME:
-        cha = CHARA
-        if ms in CHARA_NAME[cha]:
-            print(ms)
-            cha_fin = cha
-            unis = CHARA_NAME[cha][0]
-            await bot.send(ev, f'已找到{unis}，正在尝试挂至助战...')  #角色存在
+    monitor_client = supmon.monitor_client # 获取助战登录实例
+    target_chara = ev.message.extract_plain_text().strip() # 切割指令获取目标角色
+    chara_id = 0
+    # 从角色 id-外号 映射表中查找目标角色id
+    for CHARA_ID in CHARA_NAME:
+        if target_chara in CHARA_NAME[CHARA_ID]:
+            print(target_chara)
+            chara_id = CHARA_ID
+            chara_name = CHARA_NAME[CHARA_ID][0]
+            await bot.send(ev, f'已找到{chara_name}，正在尝试挂至助战...')  #角色存在
             break
 
+    # 助战位信息占位元素
+    units = [
+                {'unit_id': 100000, 'position': 3, 'support_start_time': 0, 'clan_support_count': 1},
+                {'unit_id': 100000, 'position': 4, 'support_start_time': 0, 'clan_support_count': 0}
+            ]
+    # 调API获取助战位置信息
+    # 神坑，pcr竟然将地下城助战和公会助战放在一个数组里，没挂助战的位置还获取不到信息
     prof = await monitor_client.callapi('/support_unit/get_setting', {})
-    u1 = prof['clan_support_units']
+    large_units = prof['clan_support_units']
+    # 过滤一遍只留下公会助战
+    for unit in large_units:
+        if unit['position'] in (3, 4):
+            index = unit['position'] - 3
+            units[index] = unit
     
-    for uni in u1:
-        unit_id = int(str(uni['unit_id'])[:-2])
-        if cha_fin == unit_id:
-            await bot.send(ev, f'操作失败，角色已经在助战中!')   #已经在助战中
+    # 检查角色是否已在助战中
+    # todo：这里不严谨，当助战角色被挂到其他场景的助战位时也应该提示操作失败
+    for unit in units:
+        unit_id = int(str(unit['unit_id'])[:-2])
+        if chara_id == unit_id:
+            await bot.send(ev, f'操作失败，角色已经在助战中!')
             return
     
-    num = 0
-    for uni in u1:
-        if num >= 2:
-            unit_time = uni['support_start_time']
-            now = time.time()
-            diff = int(now - unit_time)
-            print(diff)
-            if int(diff) > 1800:
-                unit_id = int(str(cha_fin) + '01')
-                try:
-                    await monitor_client.callapi('/support_unit/change_setting', {'support_type': 1, 'position': num + 1, 'action': 2, 'unit_id': unit_id})
-                    time.sleep(3)
-                    await monitor_client.callapi('/support_unit/change_setting', {'support_type': 1, 'position': num + 1, 'action': 1, 'unit_id': unit_id})
-                    msg = f'已将{monitor_nickname}的{unis}挂至{num - 1}号助战位中'
-                    await bot.send(ev, msg)
-                    await refreshAndShowZZ(bot, ev, ms) # 图片展示挂上去的助战的信息
-                except:
-                    await bot.send(ev,'操作失败/生成助战信息图片失败')
-                    pass
-                return 
-        num += 1
+    # 遍历两个公会助战位，尝试挂角色
+    for index, unit in enumerate(units):
+        # 检查冷却时间
+        unit_time = unit['support_start_time']
+        now = time.time()
+        diff = int(now - unit_time)
+        print(diff)
+        if int(diff) > 1800:
+            unit_id = int(str(chara_id) + '01')
+            try:
+                # 卸下原角色
+                await monitor_client.callapi('/support_unit/change_setting', {'support_type': 1, 'position': index + 3, 'action': 2, 'unit_id': unit_id})
+                time.sleep(3)
+                # 挂上新角色
+                await monitor_client.callapi('/support_unit/change_setting', {'support_type': 1, 'position': index + 3, 'action': 1, 'unit_id': unit_id})
+                msg = f'已将{supmon.nickname}的{chara_name}挂至助战位中'
+                await bot.send(ev, msg)
+                await refreshAndShowZZ(bot, ev, target_chara) # 图片展示挂上去的助战的数据
+            except:
+                await bot.send(ev,'操作失败/生成助战信息图片失败')
+                pass
+            return
 
     await bot.send(ev,'发生了错误！可能是：没有找到相应角色|角色名输入错误|两个助战位都未超过30分钟!')
 
