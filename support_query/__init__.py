@@ -254,7 +254,7 @@ async def clan_uni(bot, ev: CQEvent):
                 time.sleep(3)
                 # 挂上新角色
                 await monitor_client.callapi('/support_unit/change_setting', {'support_type': 1, 'position': index + 3, 'action': 1, 'unit_id': unit_id})
-                msg = f'已将{supmon.nickname}的{chara_name}挂至助战位中'
+                msg = f'已将{supmon.nickname}的{chara_name}挂至{index + 1}号助战位中'
                 await bot.send(ev, msg)
                 await refreshAndShowZZ(bot, ev, target_chara) # 图片展示挂上去的助战的数据
             except:
