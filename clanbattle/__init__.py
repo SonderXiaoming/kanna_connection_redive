@@ -561,23 +561,27 @@ def isMemberExist(gname, qmemdict):
 @sv.on_prefix('一键关联')
 async def onekey_connect(bot, ev):
     group_id = ev.group_id
-    db = MemberDict(group_id)
     isStrict = ev.message.extract_plain_text().strip()
 
+    # 获取会战成员信息
+    config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
+    config = await load_config(config_file)
+    if config:
+        gmembers = dict(config["member"])
+    else:
+        await bot.send(ev, "暂无本群公会成员数据！")
+        return
+    
     # 获取群成员信息
     qmem_dict = dict()
     qmembers = await bot.get_group_member_list(group_id = group_id)
     for qmem in qmembers:
         key = qmem['card'] or qmem['nickname']
         qmem_dict[key] = qmem['user_id']
-    
-    # 获取会战成员信息
-    config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
-    config = await load_config(config_file)
-    gmembers = dict(config["member"])
 
     # 子串匹配
     unfind = []
+    db = MemberDict(group_id)
     for gname, gid in gmembers.items():
         # 非严格模式下会跳过数据库中已存在的成员
         if not (isStrict == 's' or isStrict == 'S'):
@@ -613,7 +617,6 @@ def find_keys_by_value(d, target_value):
 @sv.on_prefix('关联')
 async def manual_connect(bot, ev):
     group_id = ev.group_id
-    db = MemberDict(group_id)
     ginfo = ev.message.extract_plain_text().strip()
 
     content = ev.raw_message
@@ -624,14 +627,20 @@ async def manual_connect(bot, ev):
         await bot.send(ev, "请@你想关联的群内成员！")
         return
     
+    # 获取会战成员信息
+    config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
+    config = await load_config(config_file)
+    if config:
+        gmembers = dict(config["member"])
+    else:
+        await bot.send(ev, "暂无本群公会成员数据！")
+        return
+    
     # 获取此成员信息
     qinfo = await bot.get_group_member_info(group_id = group_id, user_id = qid)
     qname = qinfo['card'] or qinfo['nickname']
     
-    # 获取会战成员信息
-    config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
-    config = await load_config(config_file)
-    gmembers = dict(config["member"])
+    # 通过已有信息获取其他信息
     if ginfo.isdigit() and len(ginfo) == 13:
         gid = int(ginfo)
         if gid in gmembers.values():
@@ -650,6 +659,8 @@ async def manual_connect(bot, ev):
             await bot.send(ev, "此游戏昵称不在公会中")
             pass
 
+    # 绑定游戏id与qq
+    db = MemberDict(group_id)
     db.add_mem_pair(gid, gname, qid, qname)
 
     msg = f'已关联：{gid} {gname} {qid} {qname}'
