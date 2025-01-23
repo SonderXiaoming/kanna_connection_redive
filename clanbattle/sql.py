@@ -538,3 +538,16 @@ class MemberDict(SqliteDao):
                     conn.execute(f"INSERT INTO {self._table} (gid, gname, qid, qname) VALUES ({gid}, '{gname}', {qid}, '{qname}')")
             except:
                 raise
+    
+    def search_member(self, gid = 0, gname = ""):
+        mem_info = None
+        with self._connect() as conn:
+            try:
+                if gid:
+                    mem_info = conn.execute(f'SELECT * FROM {self._table} where gid = {gid}').fetchone()
+                elif gname:
+                    mem_info = conn.execute(f'SELECT * FROM {self._table} where gname = "{gname}"').fetchone()
+
+                return mem_info
+            except:
+                raise

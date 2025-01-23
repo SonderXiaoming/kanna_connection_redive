@@ -101,26 +101,20 @@ async def get_stat(data,group_id):
     return img
 
 async def cuidao(data, dnum, group_id):
-    if dnum < 0 or dnum > 3:
+    if dnum < 1 or dnum > 3:
         msg = "您输入的数字不合法！"
         return msg
-    
-    if dnum == 0:
-        dnum += 1
 
     config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
     config = await load_config(config_file)
-    member_finished = []
+
+    member_finished = dict()
     for member in data:
-        print(member)
         if member[2] >= (4 - dnum):
-            member_finished.append(member[1])
-    members = list(set(list(config["member"])) - set(member_finished))
-    if members:
-        msg = f'\n=====\n心碎的会长还在等你们，记得出刀哦！'
-    else:
-        msg = "今天所有刀都出啦。下班下班。"
-    return msg
+            member_finished[member[1]] = member[0]
+    key_difference = set(config["member"].keys()) - set(member_finished.keys())
+    members = {k: config["member"][k] for k in key_difference}
+    return members.values()
 
 async def get_cbreport(data,total_damage,total_score):
     reply = []
