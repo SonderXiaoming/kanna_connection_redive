@@ -77,17 +77,17 @@ async def get_support_list(info, acccountinfo, qq_id):
     if info == 'self_query':
         return load_index
 
-def get_info(file,name,isself=False):
+def get_info(file, name, isSelf = False):
     try:
-        A = accurateassis(file) #输入json的路径
+        A = accurateassis(file) # 输入json的路径
     except:
         return '没有缓存,请先根据指令进行缓存',False
-    check = A.translatename2id(name) #输入要查询角色的名称
+    check = A.translatename2id(name) # 输入要查询角色的名称
     if check:
-        return check,False
-    all_info = A.serchassis() if not isself else A.user_card()
+        return check, False
+    all_info = A.serchassis() if not isSelf else A.user_card()
     if len(all_info) == 0:
-        return '没有找到该角色',False
+        return '没有找到该角色', False
     return all_info, True
 
 @sv.on_fullmatch('开启修改助战')
@@ -165,17 +165,27 @@ async def create_support_cache(bot, ev: CQEvent):
 
 # 刷新自己的助战列表，显示自己指定助战的详细信息
 async def refreshAndShowZZ(bot, ev, cname):
+    # 获取登录实例和qq号
     group_id = ev.group_id
     supmon = monitor_groups[group_id]
     qid = supmon.qid
     monitor_client = supmon.monitor_client
+
     # 刷新自己的box缓存，写入文件
     support_list = await monitor_client.callapi('/load/index', {'carrier': 'OPPO'})
     if "server_error" in support_list:
         await bot.send(ev, "网络异常")
         return
-    with open(os.path.join(info_path, 'user', f'{qid}','self.json'), 'w', encoding='utf-8') as f:
-        json.dump(support_list, f, ensure_ascii=False)
+    print(support_list)
+
+    # 如果当前账号没有对应路径和文件，创建文件夹和文件
+    try:
+        os.makedirs(os.path.join(info_path, 'user', f'{qid}'), exist_ok=True)
+        with open(os.path.join(info_path, 'user', f'{qid}', 'self.json'), 'w', encoding='utf-8') as f:
+            json.dump(support_list, f, ensure_ascii=False)
+    except:
+        await bot.send(ev, "无法将box信息写入文件！")
+        raise
     
     # 读取文件，找到目标角色信息
     all_info, check = get_info(os.path.join(info_path, 'user', f'{qid}', 'self.json'), cname, True)
@@ -184,10 +194,14 @@ async def refreshAndShowZZ(bot, ev, cname):
         return
     
     # 绘制图片输出
-    images = await general_img(all_info)
-    result = pic2b64(images)
-    msg = str(MessageSegment.image(result))
-    await bot.send(ev, msg)
+    try:
+        images = await general_img(all_info)
+        result = pic2b64(images)
+        msg = str(MessageSegment.image(result))
+        await bot.send(ev, msg)
+    except:
+        await bot.send(ev, "生成助战角色配置图片失败！")
+        raise
 
 @sv.on_prefix(f'修改助战')
 async def clan_uni(bot, ev: CQEvent):
@@ -215,38 +229,48 @@ async def clan_uni(bot, ev: CQEvent):
             chara_name = CHARA_NAME[CHARA_ID][0]
             await bot.send(ev, f'已找到{chara_name}，正在尝试挂至助战...')  #角色存在
             break
+    
+    if chara_id == 0:
+        await bot.send(ev, f'未找到{target_chara}！请确认您是否有该角色，或使用准确名称重试')  #角色不存在
+        return
 
     # 助战位信息占位元素
-    units = [
+    clan_units = [
                 {'unit_id': 100000, 'position': 3, 'support_start_time': 0, 'clan_support_count': 1},
                 {'unit_id': 100000, 'position': 4, 'support_start_time': 0, 'clan_support_count': 0}
             ]
     # 调API获取助战位置信息
     # 神坑，pcr竟然将地下城助战和公会助战放在一个数组里，没挂助战的位置还获取不到信息
     prof = await monitor_client.callapi('/support_unit/get_setting', {})
-    large_units = prof['clan_support_units']
+    clan_dungeon_units = prof['clan_support_units']
+    all_units = prof['clan_support_units'] + prof['friend_support_units']
     # 过滤一遍只留下公会助战
-    for unit in large_units:
+    for unit in clan_dungeon_units:
         if unit['position'] in (3, 4):
             index = unit['position'] - 3
-            units[index] = unit
+            clan_units[index] = unit
     
-    # 检查角色是否已在助战中
-    # todo：这里不严谨，当助战角色被挂到其他场景的助战位时也应该提示操作失败
-    for unit in units:
+    # 检查角色是否已在助战中，当助战角色被挂到其他场景的助战位时也提示操作失败
+    for unit in all_units:
         unit_id = int(str(unit['unit_id'])[:-2])
         if chara_id == unit_id:
-            await bot.send(ev, f'操作失败，角色已经在助战中!')
+            if 'friend_support_reward' in unit:
+                pos = "好友"
+            else:
+                if unit['position'] in (1, 2):
+                    pos = "地下城"
+                else:
+                    pos = "公会"
+            await bot.send(ev, f'操作失败，角色已经在{pos}助战中!')
             return
     
     # 遍历两个公会助战位，尝试挂角色
-    for index, unit in enumerate(units):
+    for index, unit in enumerate(clan_units):
         # 检查冷却时间
         unit_time = unit['support_start_time']
         now = time.time()
         diff = int(now - unit_time)
-        print(diff)
-        if int(diff) > 1800:
+        if diff > 1800:
             unit_id = int(str(chara_id) + '01')
             try:
                 # 卸下原角色
@@ -255,14 +279,15 @@ async def clan_uni(bot, ev: CQEvent):
                 # 挂上新角色
                 await monitor_client.callapi('/support_unit/change_setting', {'support_type': 1, 'position': index + 3, 'action': 1, 'unit_id': unit_id})
                 msg = f'已将{supmon.nickname}的{chara_name}挂至{index + 1}号助战位中'
-                await bot.send(ev, msg)
-                await refreshAndShowZZ(bot, ev, target_chara) # 图片展示挂上去的助战的数据
+                await bot.send(ev, msg)   
             except:
-                await bot.send(ev,'操作失败/生成助战信息图片失败')
+                await bot.send(ev, '操作失败')
                 pass
+            
+            await refreshAndShowZZ(bot, ev, chara_name) # 图片展示挂上去的助战的数据
             return
 
-    await bot.send(ev,'发生了错误！可能是：没有找到相应角色|角色名输入错误|两个助战位都未超过30分钟!')
+    await bot.send(ev,'操作失败！可能是两个助战位都未超过30分钟')
 
 @sv.on_prefix('box查询')
 async def query_clanbattle_support(bot, ev: CQEvent):
@@ -286,7 +311,7 @@ async def create_self_cache(bot, ev: CQEvent):
     os.makedirs(os.path.join(info_path, 'user', f'{qq_id}'), exist_ok=True)
     acccountinfo = await load_config(os.path.join(DATA_PATH, 'account', f'{qq_id}.json'))
     if acccountinfo != []:
-        support_list = await get_support_list('self_query',acccountinfo,qq_id)
+        support_list = await get_support_list('self_query', acccountinfo, qq_id)
         if "server_error" in support_list:
             await bot.send(ev, "网络异常")
             return
