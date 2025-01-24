@@ -4,6 +4,7 @@ import traceback
 from nonebot import get_bot
 from hoshino import Service, priv
 from ..login import query
+from ..support_query import record_monitor
 from ..util.tools import load_config, write_config, safe_send, check_client, DATA_PATH, stage_dict
 from .base import *
 from .model import ClanBattle
@@ -87,6 +88,7 @@ async def add_monitor(bot, ev):
             clanbattle_info[group_id] = ClanBattle(group_id)
         clan_info: ClanBattle = clanbattle_info[group_id]
         await clan_info.init(client, qq_id)
+        await record_monitor(bot, ev) # 启动修改助战功能
     except Exception as e:
         await bot.send(ev, str(e))
         return
