@@ -89,7 +89,6 @@ BOSS：1-5，对应公会战的一至五王，可以‘123’或者‘12’,也�
 数据来源于: https://www.caimogu.cc/gzlj.html
 </details>
 
-修改助战 + 排名播报功能原仓库地址：https://github.com/AddOneSecondL/pcrjjc2-clanbattle
  <details><summary><font size=5 >4. 修改助战</font></summary>
 【助战帮助】查看帮助<br>
 【开启修改助战】机器人登录账号，准备接收修改助战指令（可以与出刀监控登录的账号不同）<br>
@@ -109,6 +108,8 @@ BOSS：1-5，对应公会战的一至五王，可以‘123’或者‘12’,也�
 【一键提醒】@所有未出完刀的群友，指令后可加数字，代表提醒还有至少X刀没出的群友（似乎逻辑有点反人类，欢迎提出修改意见）<br>
  添加了EX装备的图片（已更新到2025/04/26为止的所有会战EX装备），避免联网获取时超时
 </details>
+修改助战 + 排名播报功能原仓库地址：https://github.com/AddOneSecondL/pcrjjc2-clanbattle
+
 ## BOX图效果展示
 
 ![f83157d3b7fe674cd6043c7cb57f24c6_720](https://github.com/user-attachments/assets/f89e4270-a4d4-4ad8-85c8-47c3730cc548)
