@@ -109,7 +109,7 @@ BOSS：1-5，对应公会战的一至五王，可以‘123’或者‘12’,也�
  添加了EX装备的图片（已更新到2025/04/26为止的所有会战EX装备），避免联网获取时超时
 </details>
 修改助战 + 排名播报功能原仓库地址：https://github.com/AddOneSecondL/pcrjjc2-clanbattle<br>
-感谢 [@AddOneSecondL](https://github.com/AddOneSecondL) 大佬
+感谢 [@AddOneSecondL](https://github.com/AddOneSecondL) 大佬安装前置插件[multicq_send](https://github.com/SonderXiaoming/multicq_send)，[convert2img](https://github.com/SonderXiaoming/convert2img)，无需加载
 
 ## BOX图效果展示
 
