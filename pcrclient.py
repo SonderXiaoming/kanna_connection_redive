@@ -5,7 +5,7 @@ from msgpack import packb, unpackb
 import asyncio
 from random import randint
 from json import loads
-from hashlib import md5
+from hashlib import md5 ,sha256
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
 from .bsgamesdk import bsdkclient
@@ -17,6 +17,8 @@ from loguru import logger
 
 import time
 import json
+import secrets
+import string
 
 
 def get_api_root(qudao):
@@ -51,9 +53,11 @@ def init_device_id(clear_id = False):
         js = json.load(f)
     device_id = js['DEVICE-ID']
     if device_id == '' or clear_id:
+        random_string = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        sha256_str = sha256(random_string.encode('utf-8')).digest()
         current_timestamp = time.time()
         timestamp_str = str(current_timestamp).encode('utf-8')
-        device_id = md5(timestamp_str).hexdigest()
+        device_id = md5(timestamp_str + sha256_str).hexdigest()
         logger.info(f'设备id已更新：{device_id}')
         js['DEVICE-ID'] = device_id
         with open(join(curpath, 'device.json'), 'w', encoding='UTF-8') as f:
