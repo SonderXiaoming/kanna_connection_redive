@@ -12,6 +12,8 @@ from .sql import SubscribeDao, RecordDao, SLDao, TreeDao, ApplyDao
 import time
 import asyncio
 
+from ..pcrclient import init_device_id
+
 help_text = '''
 * “+” 表示空格
 【出刀监控】机器人登录账号，监视出刀情况并记录
@@ -647,3 +649,8 @@ async def resatrt_remind(bot, ev):
         except Exception as e:
             pass
     await write_config(run_path, {})
+
+@sv.on_command('update_device_id', aliases=('自动报刀换设备id', '自动报刀更新设备id'), only_to_me=False)
+async def update_device_id(session: NoticeSession):
+    init_device_id(clear_id = True)
+    await session.send('自动报刀更新设备id成功！重启bot生效新设备id')

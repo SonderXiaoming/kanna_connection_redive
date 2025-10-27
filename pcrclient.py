@@ -5,7 +5,7 @@ from msgpack import packb, unpackb
 import asyncio
 from random import randint
 from json import loads
-from hashlib import md5
+from hashlib import md5 ,sha256
 from Crypto.Cipher import AES
 from base64 import b64encode, b64decode
 from .bsgamesdk import bsdkclient
@@ -14,6 +14,11 @@ from dateutil.parser import parse
 import httpx
 import random
 from loguru import logger
+
+import time
+import json
+import secrets
+import string
 
 
 def get_api_root(qudao):
@@ -24,23 +29,40 @@ def get_api_root(qudao):
             "https://l3-prod-all-gs-gzlj.bilibiligame.net"
         ])
 
-config = join(dirname(__file__), 'version.txt')
+curpath = dirname(__file__)
+
+config = join(curpath, 'version.txt')
 
 
 def _get_version() -> str:
-    version = join(dirname(__file__), 'version.txt')
+    version = join(curpath, 'version.txt')
     if os.path.exists(version):
         with open(version, encoding='utf-8') as ver:
             return ver.read().strip()
     else:
-        with open(join(dirname(__file__), 'version.origin.txt'), encoding='utf-8') as ver:
+        with open(join(curpath, 'version.origin.txt'), encoding='utf-8') as ver:
             return ver.read().strip()
 
 
 def _set_version(version: str):
-    with open(join(dirname(__file__), 'version.txt'), mode='w', encoding='utf-8') as ver:
+    with open(join(curpath, 'version.txt'), mode='w', encoding='utf-8') as ver:
         ver.write(version)
 
+def init_device_id(clear_id = False):
+    with open(join(curpath, 'device.json'), 'r', encoding='UTF-8') as f:
+        js = json.load(f)
+    device_id = js['DEVICE-ID']
+    if device_id == '' or clear_id:
+        random_string = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(32))
+        sha256_str = sha256(random_string.encode('utf-8')).digest()
+        current_timestamp = time.time()
+        timestamp_str = str(current_timestamp).encode('utf-8')
+        device_id = md5(timestamp_str + sha256_str).hexdigest()
+        logger.info(f'设备id已更新：{device_id}')
+        js['DEVICE-ID'] = device_id
+        with open(join(curpath, 'device.json'), 'w', encoding='UTF-8') as f:
+            json.dump(js, f, indent=4, ensure_ascii=False)
+    return device_id
 
 defaultHeaders = {
     'Accept-Encoding': 'gzip',
@@ -50,7 +72,7 @@ defaultHeaders = {
     'BATTLE-LOGIC-VERSION': '4',
     'BUNDLE-VER': '',
     'DEVICE': '2',
-    'DEVICE-ID': '7b1703a5d9b394e24051d7a5d4818f17',
+    'DEVICE-ID': init_device_id(),
     'DEVICE-NAME': 'OPPO PCRT00',
     'EXCEL-VER': '1.0.0',
     'GRAPHICS-DEVICE-NAME': 'Adreno (TM) 640',
