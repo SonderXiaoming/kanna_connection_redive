@@ -11,6 +11,7 @@ from .kpi import kpi_report
 from .sql import SubscribeDao, RecordDao, SLDao, TreeDao, ApplyDao
 import time
 import asyncio
+from nonebot import NoticeSession
 
 from ..pcrclient import init_device_id
 
