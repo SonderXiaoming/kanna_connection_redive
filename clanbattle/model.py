@@ -79,7 +79,7 @@ class ClanBattle:
         return await self.client.callapi('/clan_battle/battle_log_list',  {
             "clan_battle_id": self.clan_battle_id,
             "order_num": 0,
-            "phases": [1, 2, 3, 4, 5],
+            "phases": [1, 2, 3, 4],
             "report_types": [1, 2, 3],
             "hide_same_units": 0,
             "favorite_ids": [],

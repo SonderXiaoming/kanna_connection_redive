@@ -11,11 +11,10 @@ bililogin = "https://line1-sdk-center-login-sh.biligame.net/"
 header = {"User-Agent": "Mozilla/5.0 BSGameSDK", "Content-Type": "application/x-www-form-urlencoded",
           "Host": "line1-sdk-center-login-sh.biligame.net"}
 
+client = httpx.AsyncClient()
 
 async def sendpost(url, data):
-    async with httpx.AsyncClient() as client:
-        return (await client.post(url=url, data=data, headers=header, timeout=20)).json()
-
+    return (await client.post(url=url, data=data, headers=header, timeout=20)).json()
 
 def setsign(data):
     data["timestamp"] = int(time.time())
