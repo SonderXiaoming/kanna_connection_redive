@@ -12,6 +12,9 @@ from .kpi import kpi_report
 from .sql import SubscribeDao, RecordDao, SLDao, TreeDao, ApplyDao, MemberDict
 import time
 import asyncio
+from nonebot import NoticeSession
+
+from ..pcrclient import init_device_id
 
 help_text = '''
 * “+” 表示空格
@@ -791,3 +794,9 @@ async def rank_and_status():
         if not clan_info.loop_check:
             msg += "，但出刀监控未开启，排名可能不准确"
         await bot.send_group_msg(group_id = group_id, message = msg)
+
+
+@sv.on_command('update_device_id', aliases=('自动报刀换设备id', '自动报刀更新设备id'), only_to_me=False)
+async def update_device_id(session: NoticeSession):
+    init_device_id(clear_id = True)
+    await session.send('自动报刀更新设备id成功！重启bot生效新设备id')
