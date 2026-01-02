@@ -14,6 +14,7 @@ from dateutil.parser import parse
 import httpx
 import random
 from loguru import logger
+import string
 
 
 def get_api_root(qudao):
@@ -42,15 +43,21 @@ def _set_version(version: str):
         ver.write(version)
 
 
+def generate_random_hex_string():
+    # 使用十六进制字符（0-9, a-f）
+    hex_chars = string.hexdigits.lower()[:16]
+    # 随机选择32个字符组成字符串
+    return ''.join(random.choice(hex_chars) for _ in range(32))
+
 defaultHeaders = {
     'Accept-Encoding': 'gzip',
     'User-Agent': 'Dalvik/2.1.0 (Linux, U, Android 5.1.1, PCRT00 Build/LMY48Z)',
-    'X-Unity-Version': '2018.4.30f1',
-    'APP-VER': "4.9.9",
+    'X-Unity-Version': '2021.3.20f1c11',
+    'APP-VER': "11.7.1",
     'BATTLE-LOGIC-VERSION': '4',
     'BUNDLE-VER': '',
     'DEVICE': '2',
-    'DEVICE-ID': '7b1703a5d9b394e24051d7a5d4818f17',
+    'DEVICE-ID': generate_random_hex_string(),
     'DEVICE-NAME': 'OPPO PCRT00',
     'EXCEL-VER': '1.0.0',
     'GRAPHICS-DEVICE-NAME': 'Adreno (TM) 640',
@@ -96,24 +103,24 @@ class pcrclient:
 
     @staticmethod
     def pack(data: object, key: bytes) -> bytes:
-        aes = AES.new(key, AES.MODE_CBC, b'ha4nBYA2APUD6Uv1')
+        aes = AES.new(key, AES.MODE_CBC, b'7Fk9Lm3Np8Qr4Sv2')
         return aes.encrypt(pcrclient.add_to_16(packb(data, use_bin_type=False))) + key
 
     @staticmethod
     def encrypt(data: str, key: bytes) -> bytes:
-        aes = AES.new(key, AES.MODE_CBC, b'ha4nBYA2APUD6Uv1')
+        aes = AES.new(key, AES.MODE_CBC, b'7Fk9Lm3Np8Qr4Sv2')
         return aes.encrypt(pcrclient.add_to_16(data.encode('utf8'))) + key
 
     @staticmethod
     def decrypt(data: bytes):
         data = b64decode(data.decode('utf8'))
-        aes = AES.new(data[-32:], AES.MODE_CBC, b'ha4nBYA2APUD6Uv1')
+        aes = AES.new(data[-32:], AES.MODE_CBC, b'7Fk9Lm3Np8Qr4Sv2')
         return aes.decrypt(data[:-32]), data[-32:]
 
     @staticmethod
     def unpack(data: bytes):
         data = b64decode(data.decode('utf8'))
-        aes = AES.new(data[-32:], AES.MODE_CBC, b'ha4nBYA2APUD6Uv1')
+        aes = AES.new(data[-32:], AES.MODE_CBC, b'7Fk9Lm3Np8Qr4Sv2')
         dec = aes.decrypt(data[:-32])
         return unpackb(dec[:-dec[-1]], strict_map_key=False), data[-32:]
 

@@ -7,28 +7,22 @@ RES_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'img')
 FONT_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'fonts')
 
 stage_dict = {
-    "A":1,
-    "B":2,
-    "C":3,
-    "D":4,
-    "E":5,
-    0:"A",
-    1:"A",
-    2:"B",
-    3:"C",
-    4:"D",
-    5:"E"
+    "B":1,
+    "C":2,
+    "D":3,
+    0:"B",
+    1:"B",
+    2:"C",
+    3:"D"
 }
 
 rate_score = {
-    "A":[1.2,1.2,1.3,1.4,1.5],
     "B":[1.6,1.6,1.8,1.9,2],
-    "C":[2,2,2.4,2.4,2.6],
-    "D":[3.5,3.5,3.7,3.8,4],
-    "E":[3.5,3.5,3.7,3.8,4]
+    "C":[2,2,2.1,2.1,2.2],
+    "D":[4.5,4.5,4.7,4.8,5]
 }
 
-stage = [0, 3, 10, 30, 40]
+stage = [0, 6, 22]
 
 boss_max = [
     [
@@ -69,16 +63,12 @@ boss_max = [
 ]
 
 def lap2stage(lap_num):
-    if lap_num in range(4):
-        stage = 'A'
-    elif lap_num in range(4,11):
+    if lap_num in range(7):
         stage = 'B'
-    elif lap_num in range(11,31):
+    elif lap_num in range(7,23):
         stage = 'C'
-    elif lap_num in range(31,39):
-        stage = 'D'
     else:
-        stage = 'E'
+        stage = 'D'
     return stage
 
 async def load_config(path):
