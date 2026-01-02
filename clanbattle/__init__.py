@@ -8,7 +8,7 @@ from ..util.tools import load_config, write_config, safe_send, check_client, DAT
 from .base import *
 from .model import ClanBattle
 from .kpi import kpi_report
-from .sql import SubscribeDao, RecordDao, SLDao, TreeDao, ApplyDao, MemberDict
+from .sql import SubscribeDao, RecordDao, SLDao, TreeDao, ApplyDao
 import time
 import asyncio
 from nonebot import NoticeSession
@@ -18,7 +18,7 @@ from ..pcrclient import init_device_id
 help_text = '''
 * “+” 表示空格
 【出刀监控】机器人登录账号，监视出刀情况并记录
-【一键提醒】提醒未出完刀的群友
+【催刀】栞栞谁没出满三刀
 【当前战报】本期会战出刀情况
 【我的战报 + 游戏名称】 栞栞个人出刀情况
 【今日战报 + 游戏名称】 栞栞今日个人出刀情况
@@ -43,7 +43,6 @@ help_text = '''
 【取消申请】 模拟10次挂10次，老子不打了
 '''.strip()
 
-bot = get_bot()
 clanbattle_info = {}
 run_group = {}
 semaphore = asyncio.Semaphore(40)
@@ -554,149 +553,17 @@ async def correct_dao(bot, ev):
     else:
         await bot.send(ev, "请检查你输入了正确的出刀编号")
     
-# 查找群友群名片中是否包含某个游戏内昵称
-def isMemberExist(gname, qmemdict):
-    for qname in qmemdict.keys():
-        if gname in qname:
-            return qname
-    return None
-
-@sv.on_prefix('一键关联')
-async def onekey_connect(bot, ev):
-    group_id = ev.group_id
-    isStrict = ev.message.extract_plain_text().strip()
-
-    # 获取会战成员信息
-    config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
-    config = await load_config(config_file)
-    if config:
-        gmembers = dict(config["member"])
-    else:
-        await bot.send(ev, "暂无本群公会成员数据！")
-        return
-    
-    # 获取群成员信息
-    qmem_dict = dict()
-    qmembers = await bot.get_group_member_list(group_id = group_id)
-    for qmem in qmembers:
-        key = qmem['card'] or qmem['nickname']
-        qmem_dict[key] = qmem['user_id']
-
-    # 子串匹配
-    unfind = []
-    db = MemberDict(group_id)
-    for gname, gid in gmembers.items():
-        # 非严格模式下会跳过数据库中已存在的成员
-        if not (isStrict == 's' or isStrict == 'S'):
-            mem_info = db.search_member(gid, gname)
-            if mem_info: continue
-        # 查看游戏昵称是否为某个群昵称的子串
-        qname = isMemberExist(gname, qmem_dict)
-        if qname:
-            qid = qmem_dict[qname]
-            db.add_mem_pair(gid, gname, qid, qname) # 添加到数据库
-        else:
-            unfind.append((gid, gname)) # 加入未找到列表
-    
-    # 输出提示
-    msg = f"公会成员与QQ群成员关联完成"
-    if unfind:
-        msg += "，但仍有以下公会成员未能与群内成员关联：\n"
-        for ginfo in unfind:
-            gid = ginfo[0]
-            gname = ginfo[1]
-            msg += f"{gid} {gname}\n"
-        msg += "=========\n请尝试手动关联"
-        if isStrict == 's' or isStrict == 'S':
-            msg += "\n注意：严格模式会强制更新成功关联的成员的信息，并展示所有未能成功关联的成员，即使这些成员在数据库中可能存有旧数据"
-
-    await bot.send(ev, msg)
-
-
-def find_keys_by_value(d, target_value):
-    keys = list(filter(lambda k: d[k] == target_value, d))
-    return keys
-
-@sv.on_prefix('关联')
-async def manual_connect(bot, ev):
-    group_id = ev.group_id
-    ginfo = ev.message.extract_plain_text().strip()
-
-    content = ev.raw_message
-    if '[CQ:at,qq=' in content:
-        qid = re.findall(r"CQ:at,qq=([0-9]+)",content)[0]
-        print(qid)
-    else:
-        await bot.send(ev, "请@你想关联的群内成员！")
-        return
-    
-    # 获取会战成员信息
-    config_file = os.path.join(clan_path, f'{group_id}',"clanbattle.json")
-    config = await load_config(config_file)
-    if config:
-        gmembers = dict(config["member"])
-    else:
-        await bot.send(ev, "暂无本群公会成员数据！")
-        return
-    
-    # 获取此成员信息
-    qinfo = await bot.get_group_member_info(group_id = group_id, user_id = qid)
-    qname = qinfo['card'] or qinfo['nickname']
-    
-    # 通过已有信息获取其他信息
-    if ginfo.isdigit() and len(ginfo) == 13:
-        gid = int(ginfo)
-        if gid in gmembers.values():
-            gname = ""
-            results = find_keys_by_value(gmembers, gid)
-            if results:
-                gname = results[0]
-        else:
-            await bot.send(ev, "此游戏ID不在公会中")
-            return
-    else:
-        gname = ginfo
-        try:
-            gid = gmembers[gname]
-        except:
-            await bot.send(ev, "此游戏昵称不在公会中")
-            pass
-
-    # 绑定游戏id与qq
-    db = MemberDict(group_id)
-    db.add_mem_pair(gid, gname, qid, qname)
-
-    msg = f'已关联：{gid} {gname} {qid} {qname}'
-    await bot.send(ev, msg)
-
-
-@sv.on_prefix('一键提醒')
+@sv.on_fullmatch('催刀')
 async def nei_gui(bot, ev):
-    dnum = 1
-    num_str = ev.message.extract_plain_text().strip()
-    if num_str: dnum = int(num_str)
-    print(dnum)
-
     group_id = ev.group_id
-    rdb = RecordDao(group_id)
-    data = rdb.get_day_rcords(int(time.time()))
+    db = RecordDao(group_id)
+    data = db.get_day_rcords(int(time.time()))
     if not data:
         await bot.send(ev, "数据库为空，请确保开启出刀监控或使用“回归性原理”进行修正")
     else:
         players = day_report(data)
-        gids = await cuidao(players, dnum, group_id)
-        if gids:
-            mdb = MemberDict(group_id)
-            msg = f"以下{len(gids)}位成员每人还有至少{dnum}刀没有出：\n"
-            for gid in gids:
-                result = mdb.search_member(gid)
-                msg += f'[CQ:at,qq={result[2]}]\n'
-            msg += "======\n记得出刀呀，会长还在等你们哦！"
-        else:
-            msg = "今天的刀都出完啦！感谢大家！"
-
-        await bot.send(ev, msg)
-
+        result = await cuidao(players, group_id)
+        await bot.send(ev, result)
 
 @sv.on_fullmatch('会战KPI', '会战kpi')
 async def get_kpi(bot, ev):
@@ -783,16 +650,6 @@ async def resatrt_remind(bot, ev):
         except Exception as e:
             pass
     await write_config(run_path, {})
-
-@sv.scheduled_job('cron', hour='5', minute='5') # 推送5点时的名次
-async def rank_and_status():
-    for group_id in run_group:
-        clan_info: ClanBattle = clanbattle_info[group_id]
-        msg = f'凌晨5点时的排名为：{clan_info.rank}'
-        if not clan_info.loop_check:
-            msg += "，但出刀监控未开启，排名可能不准确"
-        await bot.send_group_msg(group_id = group_id, message = msg)
-
 
 @sv.on_command('update_device_id', aliases=('自动报刀换设备id', '自动报刀更新设备id'), only_to_me=False)
 async def update_device_id(session: NoticeSession):
