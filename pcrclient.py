@@ -64,7 +64,6 @@ def init_device_id(clear_id = False):
             json.dump(js, f, indent=4, ensure_ascii=False)
     return device_id
 
-
 defaultHeaders = {
     'Accept-Encoding': 'gzip',
     'User-Agent': 'Dalvik/2.1.0 (Linux, U, Android 5.1.1, PCRT00 Build/LMY48Z)',

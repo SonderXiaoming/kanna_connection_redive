@@ -88,30 +88,6 @@ BOSS：1-5，对应公会战的一至五王，可以‘123’或者‘12’,也�
 【清空作业黑名单】（清空作业黑名单） <br>
 数据来源于: https://www.caimogu.cc/gzlj.html
 </details>
-
- <details><summary><font size=5 >4. 修改助战</font></summary>
-【助战帮助】查看帮助<br>
-【开启修改助战】机器人登录账号，准备接收修改助战指令（可以与出刀监控登录的账号不同）<br>
-【查助战人】查询现在是登录了哪一位群友的账号<br>
-【修改助战XX】XX为角色名（支持常用外号），机器人会自动找到并替换助战，并返回该角色的详细信息<br>
-【关闭修改助战】手动关闭此功能，号主上号时也会自动顶号退出
-</details>
-
-<details><summary><font size=5 >5. 凌晨5点5分报排名</font></summary>
-会战期间，每天凌晨5点5分，向所有开启出刀监控的群推送当前排名<br>
-会战排名每30分钟更新一次，因此5点5分的排名即为5点的排名
-</details>
-
-<details><summary><font size=5 >6. 一键提醒未出完刀的群友</font></summary>
-【一键关联】自动尝试关联游戏内id和群友QQ号（查看每个游戏昵称是否为某位群友QQ昵称的子串）<br>
-【关联+游戏内id+@某位群友】将某个游戏内id与某位群友的QQ号进行关联<br>
-【一键提醒】@所有未出完刀的群友，指令后可加数字，代表提醒还有至少X刀没出的群友（似乎逻辑有点反人类，欢迎提出修改意见）<br>
- 添加了EX装备的图片（已更新到2025/04/26为止的所有会战EX装备），避免联网获取时超时
-</details>
-修改助战 + 排名播报功能原仓库地址：https://github.com/AddOneSecondL/pcrjjc2-clanbattle
-
-感谢[@AddOneSecondL](https://github.com/AddOneSecondL)大佬
-
 ## BOX图效果展示
 
 ![f83157d3b7fe674cd6043c7cb57f24c6_720](https://github.com/user-attachments/assets/f89e4270-a4d4-4ad8-85c8-47c3730cc548)
