@@ -1,6 +1,6 @@
 # 你只需要出刀（KCR 环奈连结R）
 
-# 2.0上线！这个可以放转转回收了
+# [你只需要出刀2（KCRR 环奈连结R Relink）](https://github.com/SonderXiaoming/kanna_connection_redive_2)上线！这个可以放转转回收了
 
 ## <font color=#FF0000>严重警告</font>
 
